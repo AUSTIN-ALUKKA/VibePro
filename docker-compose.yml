@@ -1,0 +1,59 @@
+version: '3.8'
+services:
+  backend:
+    build: .
+    container_name: vp_backend
+    env_file: .env
+    environment:
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8000:8000"
+    volumes:
+      - dev_db:/data
+      - ./backend:/app/backend:ro
+    healthcheck:
+      test: ["CMD-SHELL","curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tests:
+    image: python:3.11-slim
+    container_name: vp_tests
+    env_file: .env
+    depends_on:
+      backend:
+        condition: service_healthy
+    working_dir: /tests
+    volumes:
+      - ./tests:/tests:ro
+      - ./backend:/app/backend:ro
+    command: bash -c "pip install -r /app/backend/requirements.txt pytest -q"
+
+  frontend:
+    build: ./frontend
+    container_name: vp_frontend
+    environment:
+      - VITE_BACKEND_URL=http://localhost:8000
+    ports:
+      - "5173:5173"
+    restart: "no"
+    # Not started by default in demo; students can `docker compose up frontend`
+
+  ngrok:
+    image: wernight/ngrok:latest
+    container_name: vp_ngrok
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTH_TOKEN}
+      - NGROK_REGION=${NGROK_REGION}
+    command: http backend:8000
+    depends_on:
+      - backend
+    ports:
+      - "4040:4040"
+    restart: "no"
+    # Only useful when NGROK_AUTHTOKEN is set; otherwise students run ngrok on host
+
+volumes:
+  dev_db:
+    name: vp_dev_db
