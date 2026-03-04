@@ -20,7 +20,7 @@ COPY backend /app/backend
 WORKDIR /app/backend
 
 ENV PATH="/home/appuser/.local/bin:$PATH"
-RUN chown -R appuser:appuser /app
+RUN chown -R appuser:appuser /app && mkdir -p /data && chown -R appuser:appuser /data
 USER appuser
 
 EXPOSE 8000
